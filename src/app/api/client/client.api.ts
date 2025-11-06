@@ -1,5 +1,4 @@
 import { TIME_UNITS } from "@/app/constants";
-import type { ApiError } from "@/app/types";
 import type {
   AxiosResponse,
   InternalAxiosRequestConfig,
@@ -7,6 +6,23 @@ import type {
 } from "axios";
 import axios, { AxiosError } from "axios";
 import { logoutAndRedirect } from "@/lib/authActions";
+import {
+  API_SERVICES,
+  type ApiError,
+  type ApiResponse,
+  type ICategory,
+  type IParams,
+} from "../types";
+import { CATEGORY } from "@/app/modules/ecommerce/types";
+
+type RequestBuilderProps<T> = {
+  method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+  service: string;
+  id?: string | number;
+  category?: ICategory;
+  body?: T;
+  params?: IParams;
+};
 
 export class ClientAPI {
   private static instance: ClientAPI;
@@ -14,7 +30,7 @@ export class ClientAPI {
 
   baseUrl: string;
   timeout: number = 10 * TIME_UNITS.seconds;
-  withCredentials: boolean = true;
+  withCredentials: boolean = false;
 
   private constructor(baseUrl: string) {
     this.baseUrl = baseUrl;
@@ -44,13 +60,13 @@ export class ClientAPI {
         // if (token) config.headers.Authorization = `Bearer ${token}`;
         return config;
       },
-      (error: AxiosError) => Promise.reject(this.normalizeError(error))
+      (error: AxiosError) => Promise.reject(this.apiError(error))
     );
 
     client.interceptors.response.use(
       (response: AxiosResponse) => response,
       (error: AxiosError) => {
-        const normalizedError = this.normalizeError(error);
+        const normalizedError = this.apiError(error);
 
         if (error.response?.status === 401) {
           logoutAndRedirect();
@@ -62,7 +78,7 @@ export class ClientAPI {
     return client;
   }
 
-  private normalizeError(error: AxiosError): ApiError {
+  private apiError(error: AxiosError): ApiError {
     interface ApiErrorData {
       message?: string;
     }
@@ -77,7 +93,51 @@ export class ClientAPI {
     };
   }
 
+  private apiResponse<T>(response: AxiosResponse): ApiResponse<T> {
+    return {
+      data: response.data,
+      status: response.status,
+      message: response.statusText,
+    };
+  }
+
   get http(): AxiosInstance {
     return this.client;
+  }
+
+  async requestBuilder<T>({
+    method,
+    service,
+    id,
+    category,
+    body,
+    params,
+  }: RequestBuilderProps<T>): Promise<ApiResponse<T>> {
+    let serviceUrl = `/${service}`;
+
+    if (
+      category &&
+      service === API_SERVICES.PRODUCTS &&
+      category !== CATEGORY.ALL
+    ) {
+      serviceUrl += `/category/${category}`;
+    }
+
+    const url = id ? `${serviceUrl}/${id}` : serviceUrl;
+
+    if (!url) {
+      throw new Error("URL no válida para la solicitud");
+    }
+
+    const response = await this.client.request<T>({
+      method,
+      url,
+      ...(method === "POST" || method === "PUT" || method === "PATCH"
+        ? { data: body }
+        : {}),
+      params,
+    });
+
+    return this.apiResponse<T>(response);
   }
 }

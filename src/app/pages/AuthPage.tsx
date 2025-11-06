@@ -2,8 +2,8 @@ import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/app/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
-import LoginForm from "../modules/auth/LoginForm";
-import RegisterForm from "../modules/auth/RegisterForm";
+import LoginForm from "../modules/access-control/auth/LoginForm";
+import RegisterForm from "../modules/access-control/auth/RegisterForm";
 
 interface AuthPageProps {
     title?: string;

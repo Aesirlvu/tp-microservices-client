@@ -1,11 +1,11 @@
 import type {
   ILogin,
   ILoginResponse,
-} from "../../modules/auth/schemas/login.schema";
+} from "../../modules/access-control/auth/schemas/login.schema";
 import type {
   IRegister,
   IRegisterResponse,
-} from "../../modules/auth/schemas/register.schema";
+} from "../../modules/access-control/auth/schemas/register.schema";
 import { clientAPI } from "../config";
 
 export class AuthService {
